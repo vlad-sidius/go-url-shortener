@@ -20,6 +20,12 @@ func RegisterRoutes(mux *http.ServeMux) {
 
 // generates hash and store url in local storage
 func shortenURLHandler(rw http.ResponseWriter, req *http.Request) {
+	if req.Method != http.MethodPost {
+		// only POST requests allowed
+		rw.WriteHeader(http.StatusMethodNotAllowed)
+		return
+	}
+
 	body, err := io.ReadAll(req.Body)
 	if err != nil {
 		http.Error(rw, "Failed to read body", http.StatusBadRequest)
@@ -39,9 +45,15 @@ func shortenURLHandler(rw http.ResponseWriter, req *http.Request) {
 
 // resolves an url by hash
 func getURLHandler(rw http.ResponseWriter, req *http.Request) {
-	shortURL := req.PathValue("id")
+	if req.Method != http.MethodGet {
+		// only GET requests allowed
+		rw.WriteHeader(http.StatusMethodNotAllowed)
+		return
+	}
 
-	originalURL, ok := memRepo.Get(shortURL)
+	hash := strings.TrimPrefix(req.URL.Path, "/")
+
+	originalURL, ok := memRepo.Get(hash)
 	if !ok {
 		http.NotFound(rw, req)
 		return

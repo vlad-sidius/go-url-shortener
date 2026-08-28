@@ -2,7 +2,11 @@ module github.com/vlad-sidius/go-url-shortener
 
 go 1.26.7
 
-require github.com/stretchr/testify v1.12.1
+require (
+	github.com/gin-gonic/gin v1.12.0
+	github.com/go-resty/resty/v2 v2.17.2
+	github.com/stretchr/testify v1.12.1
+)
 
 require (
 	github.com/bytedance/gopkg v0.1.3 // indirect
@@ -11,7 +15,6 @@ require (
 	github.com/cloudwego/base64x v0.1.6 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.12 // indirect
 	github.com/gin-contrib/sse v1.1.0 // indirect
-	github.com/gin-gonic/gin v1.12.0 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect
 	github.com/go-playground/validator/v10 v10.30.1 // indirect

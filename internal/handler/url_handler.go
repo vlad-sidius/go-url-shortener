@@ -4,9 +4,11 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"net/http"
+	"net/url"
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/vlad-sidius/go-url-shortener/internal/config"
 )
 
 type urlRepo interface {
@@ -15,11 +17,13 @@ type urlRepo interface {
 }
 
 type URLHandler struct {
+	conf *config.Config
 	repo urlRepo
 }
 
-func NewURLHandler(repo urlRepo) *URLHandler {
+func NewURLHandler(conf *config.Config, repo urlRepo) *URLHandler {
 	return &URLHandler{
+		conf: conf,
 		repo: repo,
 	}
 }
@@ -32,32 +36,27 @@ func (h *URLHandler) RegisterRoutes(router gin.IRoutes) {
 
 // generates hash and store url in local storage
 func (h *URLHandler) shortenURLHandler(ctx *gin.Context) {
-	if ctx.Request.Method != http.MethodPost {
-		ctx.AbortWithStatus(http.StatusMethodNotAllowed)
-		return
-	}
-
 	body, err := ctx.GetRawData()
 	if err != nil {
 		ctx.String(http.StatusBadRequest, "Failed to read body")
 		return
 	}
 
-	hashCode := h.genURLHash()
+	// validate url
 	originalURL := strings.TrimSpace(string(body))
+	if _, err := url.ParseRequestURI(originalURL); err != nil {
+		ctx.String(http.StatusBadRequest, "Provided URL is invalid")
+		return
+	}
+
+	hashCode := h.genURLHash()
 	h.repo.Put(hashCode, originalURL)
 
-	ctx.String(http.StatusCreated, "http://localhost:8080/"+hashCode)
+	ctx.String(http.StatusCreated, h.conf.BaseURL+"/"+hashCode)
 }
 
 // resolves an url by hash
 func (h *URLHandler) getURLHandler(ctx *gin.Context) {
-	if ctx.Request.Method != http.MethodGet {
-		// only GET requests allowed
-		ctx.AbortWithStatus(http.StatusMethodNotAllowed)
-		return
-	}
-
 	hash := ctx.Param("id")
 
 	originalURL, ok := h.repo.Get(hash)

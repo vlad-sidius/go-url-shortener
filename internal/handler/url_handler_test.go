@@ -7,10 +7,15 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
+	"github.com/vlad-sidius/go-url-shortener/internal/repository"
 )
 
 func TestShortenURLHandler(t *testing.T) {
+	memRepo := repository.NewMemURLRepo()
+	urlHandler := NewURLHandler(memRepo)
+
 	originalURL := `https://practicum.yandex.ru`
 
 	testCases := []struct {
@@ -25,10 +30,21 @@ func TestShortenURLHandler(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.method, func(t *testing.T) {
-			req := httptest.NewRequest(tc.method, "/", strings.NewReader(originalURL))
-			rw := httptest.NewRecorder()
+			gin.SetMode(gin.TestMode)
+			router := gin.New()
+			router.Handle(tc.method, "/", urlHandler.shortenURLHandler)
 
-			shortenURLHandler(rw, req)
+			var req *http.Request
+
+			if tc.method == http.MethodPost {
+				req = httptest.NewRequest(tc.method, "/", strings.NewReader(originalURL))
+				req.Header.Set("Content-Type", "text/plain")
+			} else {
+				req = httptest.NewRequest(tc.method, "/", nil)
+			}
+
+			rw := httptest.NewRecorder()
+			router.ServeHTTP(rw, req)
 
 			assert.Equal(t, tc.expectedCode, rw.Code, "Invalid status code")
 
@@ -41,6 +57,9 @@ func TestShortenURLHandler(t *testing.T) {
 }
 
 func TestGetURLHandler(t *testing.T) {
+	memRepo := repository.NewMemURLRepo()
+	urlHandler := NewURLHandler(memRepo)
+
 	originalURL := `https://practicum.yandex.ru`
 	urlHash := `test123`
 
@@ -58,10 +77,14 @@ func TestGetURLHandler(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.method, func(t *testing.T) {
-			req := httptest.NewRequest(tc.method, "/"+urlHash, nil)
-			rw := httptest.NewRecorder()
+			gin.SetMode(gin.TestMode)
+			router := gin.New()
+			router.Handle(tc.method, "/:id", urlHandler.getURLHandler)
 
-			getURLHandler(rw, req)
+			req := httptest.NewRequest(tc.method, "/"+urlHash, nil)
+
+			rw := httptest.NewRecorder()
+			router.ServeHTTP(rw, req)
 
 			assert.Equal(t, tc.expectedCode, rw.Code, "Invalid status code")
 

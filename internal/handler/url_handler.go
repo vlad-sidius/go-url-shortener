@@ -3,67 +3,73 @@ package handler
 import (
 	"crypto/rand"
 	"encoding/base64"
-	"io"
 	"net/http"
 	"strings"
 
-	repo "github.com/vlad-sidius/go-url-shortener/internal/repository"
+	"github.com/gin-gonic/gin"
 )
 
-var memRepo = repo.NewMemURLRepo()
+type urlRepo interface {
+	Put(key, value string)
+	Get(key string) (string, bool)
+}
+
+type URLHandler struct {
+	repo urlRepo
+}
+
+func NewURLHandler(repo urlRepo) *URLHandler {
+	return &URLHandler{
+		repo: repo,
+	}
+}
 
 // RegisterRoutes registers all handlers
-func RegisterRoutes(mux *http.ServeMux) {
-	mux.HandleFunc("POST /", shortenURLHandler)
-	mux.HandleFunc("GET /{id}", getURLHandler)
+func (h *URLHandler) RegisterRoutes(router gin.IRoutes) {
+	router.POST("/", h.shortenURLHandler)
+	router.GET("/:id", h.getURLHandler)
 }
 
 // generates hash and store url in local storage
-func shortenURLHandler(rw http.ResponseWriter, req *http.Request) {
-	if req.Method != http.MethodPost {
-		// only POST requests allowed
-		rw.WriteHeader(http.StatusMethodNotAllowed)
+func (h *URLHandler) shortenURLHandler(ctx *gin.Context) {
+	if ctx.Request.Method != http.MethodPost {
+		ctx.AbortWithStatus(http.StatusMethodNotAllowed)
 		return
 	}
 
-	body, err := io.ReadAll(req.Body)
+	body, err := ctx.GetRawData()
 	if err != nil {
-		http.Error(rw, "Failed to read body", http.StatusBadRequest)
+		ctx.String(http.StatusBadRequest, "Failed to read body")
 		return
 	}
 
-	req.Body.Close()
-
+	hashCode := h.genURLHash()
 	originalURL := strings.TrimSpace(string(body))
-	shortURL := genURLHash()
-	memRepo.Put(shortURL, originalURL)
+	h.repo.Put(hashCode, originalURL)
 
-	rw.Header().Set("Content-Type", "text/plain; charset=utf-8")
-	rw.WriteHeader(http.StatusCreated)
-	rw.Write([]byte("http://localhost:8080/" + shortURL))
+	ctx.String(http.StatusCreated, "http://localhost:8080/"+hashCode)
 }
 
 // resolves an url by hash
-func getURLHandler(rw http.ResponseWriter, req *http.Request) {
-	if req.Method != http.MethodGet {
+func (h *URLHandler) getURLHandler(ctx *gin.Context) {
+	if ctx.Request.Method != http.MethodGet {
 		// only GET requests allowed
-		rw.WriteHeader(http.StatusMethodNotAllowed)
+		ctx.AbortWithStatus(http.StatusMethodNotAllowed)
 		return
 	}
 
-	hash := strings.TrimPrefix(req.URL.Path, "/")
+	hash := ctx.Param("id")
 
-	originalURL, ok := memRepo.Get(hash)
+	originalURL, ok := h.repo.Get(hash)
 	if !ok {
-		http.NotFound(rw, req)
+		ctx.Status(http.StatusNotFound)
 		return
 	}
 
-	rw.Header().Set("Location", originalURL)
-	rw.WriteHeader(http.StatusTemporaryRedirect)
+	ctx.Redirect(http.StatusTemporaryRedirect, originalURL)
 }
 
-func genURLHash() string {
+func (h *URLHandler) genURLHash() string {
 	bytes := make([]byte, 6) // 6 bytes → ~8 symbols in base64
 	rand.Read(bytes)         // no error handling is necessary, as Read always succeeds
 	return base64.URLEncoding.EncodeToString(bytes)[:8]

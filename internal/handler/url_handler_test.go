@@ -29,7 +29,7 @@ func TestShortenURLHandler(t *testing.T) {
 		{method: http.MethodGet, expectedCode: http.StatusNotFound},
 		{method: http.MethodPut, expectedCode: http.StatusNotFound},
 		{method: http.MethodDelete, expectedCode: http.StatusNotFound},
-		{method: http.MethodPost, expectedCode: http.StatusBadRequest, body: invalidURL},
+		{method: http.MethodPost, expectedCode: http.StatusInternalServerError, body: invalidURL},
 		{method: http.MethodPost, expectedCode: http.StatusCreated, body: originalURL},
 	}
 

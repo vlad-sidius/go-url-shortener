@@ -1,31 +1,25 @@
 package handler
 
 import (
-	"crypto/rand"
-	"encoding/base64"
+	"log"
 	"net/http"
 	"net/url"
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/vlad-sidius/go-url-shortener/internal/config"
 )
 
-type urlRepo interface {
-	Put(key, value string)
-	Get(key string) (string, bool)
+type urlService interface {
+	CreateShortCode(originalURL string) (string, error)
+	ResolveOriginalURL(hash string) (string, bool)
 }
 
 type URLHandler struct {
-	conf *config.Config
-	repo urlRepo
+	service urlService
 }
 
-func NewURLHandler(conf *config.Config, repo urlRepo) *URLHandler {
-	return &URLHandler{
-		conf: conf,
-		repo: repo,
-	}
+func NewURLHandler(service urlService) *URLHandler {
+	return &URLHandler{service}
 }
 
 // RegisterRoutes registers all handlers
@@ -38,38 +32,39 @@ func (h *URLHandler) RegisterRoutes(router gin.IRoutes) {
 func (h *URLHandler) shortenURLHandler(ctx *gin.Context) {
 	body, err := ctx.GetRawData()
 	if err != nil {
-		ctx.String(http.StatusBadRequest, "Failed to read body")
+		log.Println("Failed to read body")
+		ctx.Status(http.StatusInternalServerError)
 		return
 	}
 
 	// validate url
 	originalURL := strings.TrimSpace(string(body))
 	if _, err := url.ParseRequestURI(originalURL); err != nil {
-		ctx.String(http.StatusBadRequest, "Provided URL is invalid")
+		log.Println("Provided URL is invalid")
+		ctx.Status(http.StatusInternalServerError)
 		return
 	}
 
-	hashCode := h.genURLHash()
-	h.repo.Put(hashCode, originalURL)
+	shortURL, err := h.service.CreateShortCode(originalURL)
+	if err != nil {
+		log.Printf("Failed to create short URL: %v\n", err)
+		ctx.Status(http.StatusInternalServerError)
+		return
+	}
 
-	ctx.String(http.StatusCreated, h.conf.BaseURL+"/"+hashCode)
+	ctx.String(http.StatusCreated, shortURL)
 }
 
 // resolves an url by hash
 func (h *URLHandler) getURLHandler(ctx *gin.Context) {
 	hash := ctx.Param("id")
 
-	originalURL, ok := h.repo.Get(hash)
+	originalURL, ok := h.service.ResolveOriginalURL(hash)
 	if !ok {
+		log.Printf("Original URL for hash '%s' was not found\n", hash)
 		ctx.Status(http.StatusNotFound)
 		return
 	}
 
 	ctx.Redirect(http.StatusTemporaryRedirect, originalURL)
-}
-
-func (h *URLHandler) genURLHash() string {
-	bytes := make([]byte, 6) // 6 bytes → ~8 symbols in base64
-	rand.Read(bytes)         // no error handling is necessary, as Read always succeeds
-	return base64.URLEncoding.EncodeToString(bytes)[:8]
 }

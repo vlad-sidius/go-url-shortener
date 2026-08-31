@@ -1,26 +1,27 @@
 package main
 
 import (
-	"fmt"
-	"os"
+	"log"
 
 	"github.com/gin-gonic/gin"
 	"github.com/vlad-sidius/go-url-shortener/internal/config"
 	"github.com/vlad-sidius/go-url-shortener/internal/handler"
 	"github.com/vlad-sidius/go-url-shortener/internal/repository"
+	"github.com/vlad-sidius/go-url-shortener/internal/service"
 )
 
 func main() {
 	conf := config.ParseCliArgs()
 	memRepo := repository.NewMemURLRepo()
-	urlHandler := handler.NewURLHandler(conf, memRepo)
+	hashGen := service.NewRandomHashGenerator()
+	urlService := service.NewURLServiceLive(conf, memRepo, hashGen)
+	urlHandler := handler.NewURLHandler(urlService)
 
 	router := gin.Default()
 	urlHandler.RegisterRoutes(router)
 
-	err := router.Run(conf.Address)
+	err := router.Run(conf.Address())
 	if err != nil {
-		fmt.Printf("Failed to start server %v\n", err)
-		os.Exit(1)
+		log.Fatalf("Failed to start server %v\n", err)
 	}
 }

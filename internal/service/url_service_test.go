@@ -11,23 +11,19 @@ import (
 )
 
 // mock for hash generator
-type generatorResult struct {
-	hash string
-	err  error
-}
-
 type mockGenerator struct {
-	results   []generatorResult
+	results   []string
 	callCount int
 }
 
-func (m *mockGenerator) Generate() (string, error) {
+func (m *mockGenerator) Generate() string {
 	if m.callCount < len(m.results) {
 		res := m.results[m.callCount]
 		m.callCount++
-		return res.hash, res.err
+		return res
 	}
-	return "", errors.New("mock generator out of results")
+
+	return ""
 }
 
 // test cases
@@ -44,18 +40,10 @@ func TestURLServiceLive_CreateShortCode(t *testing.T) {
 		{
 			name:        "success on first try",
 			repo:        repository.NewMemURLRepo(),
-			generator:   &mockGenerator{results: []generatorResult{{hash: "abc123"}}},
+			generator:   &mockGenerator{results: []string{"abc123"}},
 			originalURL: "https://example.com/long-url",
 			expectedURL: "https://short.io/abc123",
 			expectedErr: nil,
-		},
-		{
-			name:        "generator returns error",
-			repo:        repository.NewMemURLRepo(),
-			generator:   &mockGenerator{results: []generatorResult{{hash: "", err: errors.New("generation failed")}}},
-			originalURL: "https://example.com/long-url",
-			expectedURL: "",
-			expectedErr: errors.New("generation failed"),
 		},
 		{
 			name: "success after one collision",
@@ -64,10 +52,7 @@ func TestURLServiceLive_CreateShortCode(t *testing.T) {
 				r.Put("abc123", "https://example.com/other-url")
 				return r
 			}(),
-			generator: &mockGenerator{results: []generatorResult{
-				{hash: "abc123", err: nil}, // collision
-				{hash: "def456", err: nil}, // success
-			}},
+			generator:   &mockGenerator{results: []string{"abc123", "def456"}},
 			originalURL: "https://example.com/long-url",
 			expectedURL: "https://short.io/def456",
 			expectedErr: nil,
@@ -81,10 +66,12 @@ func TestURLServiceLive_CreateShortCode(t *testing.T) {
 			}(),
 			generator: func() hashGenerator {
 				// Provide 10 collisions to exhaust retriesLimit (which is 10)
-				results := make([]generatorResult, 10)
+				results := make([]string, 10)
+
 				for i := range results {
-					results[i] = generatorResult{hash: "collision", err: nil}
+					results[i] = "collision"
 				}
+
 				return &mockGenerator{results: results}
 			}(),
 			originalURL: "https://example.com/long-url",

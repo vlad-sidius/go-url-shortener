@@ -16,7 +16,7 @@ type urlRepo interface {
 }
 
 type hashGenerator interface {
-	Generate() (string, error)
+	Generate() string
 }
 
 type URLServiceLive struct {
@@ -52,12 +52,14 @@ func (s *URLServiceLive) ResolveOriginalURL(hash string) (string, bool) {
 	return "", false
 }
 
-// generateShortCode generates unique hash
+// saveShortCode tries to generate unique hash and save via repository,
+// it performs retriesLimit attempts
 func (s *URLServiceLive) saveShortCode(originalURL string, retriesLeft int) (string, error) {
-	hash, err := s.generator.Generate()
-	if err != nil {
-		return "", err
+	if retriesLeft == 0 {
+		return "", fmt.Errorf("failed to generate hash in %d tries", retriesLimit)
 	}
+
+	hash := s.generator.Generate()
 
 	if err := s.repo.TryPut(hash, originalURL); err != nil {
 		return s.saveShortCode(originalURL, retriesLeft-1)

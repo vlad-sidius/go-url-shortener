@@ -1,9 +1,11 @@
 package repository
 
 import (
-	"fmt"
+	"errors"
 	"sync"
 )
+
+var ErrInsertCollision = errors.New("insert collision")
 
 type MemURLRepo struct {
 	m    sync.Mutex
@@ -28,7 +30,7 @@ func (r *MemURLRepo) TryPut(key, value string) error {
 	defer r.m.Unlock()
 
 	if _, ok := r.data[key]; ok {
-		return fmt.Errorf("insert collision for key '%s'", key)
+		return ErrInsertCollision
 	}
 
 	r.data[key] = value

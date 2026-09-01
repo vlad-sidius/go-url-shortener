@@ -13,7 +13,7 @@ import (
 func main() {
 	conf := config.ParseCliArgs()
 	memRepo := repository.NewMemURLRepo()
-	hashGen := service.NewRandomHashGenerator()
+	hashGen := service.NewRandomSlugGenerator()
 	urlService := service.NewURLServiceLive(&conf.URLServiceConf, memRepo, hashGen)
 	urlHandler := handler.NewURLHandler(urlService)
 

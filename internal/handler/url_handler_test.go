@@ -38,7 +38,7 @@ func TestShortenURLHandler(t *testing.T) {
 			// init dependencies
 			conf := config.URLServiceConfig{BaseURL: `http://localhost:8000`}
 			memRepo := repository.NewMemURLRepo()
-			hashGen := service.NewRandomHashGenerator()
+			hashGen := service.NewRandomSlugGenerator()
 			urlService := service.NewURLServiceLive(&conf, memRepo, hashGen)
 			urlHandler := NewURLHandler(urlService)
 
@@ -96,7 +96,7 @@ func TestGetURLHandler(t *testing.T) {
 			// init dependencies
 			conf := config.URLServiceConfig{BaseURL: `http://localhost:8000`}
 			memRepo := repository.NewMemURLRepo()
-			hashGen := service.NewRandomHashGenerator()
+			hashGen := service.NewRandomSlugGenerator()
 			urlService := service.NewURLServiceLive(&conf, memRepo, hashGen)
 			urlHandler := NewURLHandler(urlService)
 

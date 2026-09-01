@@ -1,3 +1,13 @@
+# Output
+dist/
+out/
+
+# IDE
+.idea/
+*.iml
+
+.vscode
+
 # Binaries for programs and plugins
 *.exe
 *.exe~
@@ -12,12 +22,20 @@
 *.out
 
 # Binaries
-cmd/shortener/main
-cmd/shortener/shortener
+shortenertest
 
 # Dependency directories (remove the comment below to include it)
 vendor/
 
-# IDEs directories
-.idea
-.vscode
+# Go workspace file
+go.work
+go.work.sum
+
+# Env file
+.env
+
+# MacOs
+.DS_Store
+
+# Other
+*.json

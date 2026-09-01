@@ -40,8 +40,7 @@ func (h *URLHandler) shortenURLHandler(ctx *gin.Context) {
 	// validate url
 	originalURL := strings.TrimSpace(string(body))
 	if _, err := url.ParseRequestURI(originalURL); err != nil {
-		log.Println("Provided URL is invalid")
-		ctx.Status(http.StatusInternalServerError)
+		ctx.Status(http.StatusBadRequest)
 		return
 	}
 
@@ -61,7 +60,6 @@ func (h *URLHandler) getURLHandler(ctx *gin.Context) {
 
 	originalURL, ok := h.service.ResolveOriginalURL(hash)
 	if !ok {
-		log.Printf("Original URL for hash '%s' was not found\n", hash)
 		ctx.Status(http.StatusNotFound)
 		return
 	}

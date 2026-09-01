@@ -29,17 +29,17 @@ func TestShortenURLHandler(t *testing.T) {
 		{method: http.MethodGet, expectedCode: http.StatusNotFound},
 		{method: http.MethodPut, expectedCode: http.StatusNotFound},
 		{method: http.MethodDelete, expectedCode: http.StatusNotFound},
-		{method: http.MethodPost, expectedCode: http.StatusInternalServerError, body: invalidURL},
+		{method: http.MethodPost, expectedCode: http.StatusBadRequest, body: invalidURL},
 		{method: http.MethodPost, expectedCode: http.StatusCreated, body: originalURL},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.method, func(t *testing.T) {
 			// init dependencies
-			conf := config.NewConfig("localhost:8080", `http://localhost:8000`)
+			conf := config.URLServiceConfig{BaseURL: `http://localhost:8000`}
 			memRepo := repository.NewMemURLRepo()
 			hashGen := service.NewRandomHashGenerator()
-			urlService := service.NewURLServiceLive(conf, memRepo, hashGen)
+			urlService := service.NewURLServiceLive(&conf, memRepo, hashGen)
 			urlHandler := NewURLHandler(urlService)
 
 			// create router
@@ -69,7 +69,7 @@ func TestShortenURLHandler(t *testing.T) {
 
 			if tc.method == http.MethodPost && resp.StatusCode() == http.StatusCreated {
 				shortURL := strings.TrimSpace(string(resp.Body()))
-				assert.Contains(t, shortURL, conf.BaseURL())
+				assert.Contains(t, shortURL, conf.BaseURL)
 
 				_, err := url.ParseRequestURI(shortURL)
 				assert.NoError(t, err, "Response body is not a valid URL: %q", shortURL)
@@ -94,10 +94,10 @@ func TestGetURLHandler(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.method, func(t *testing.T) {
 			// init dependencies
-			conf := config.NewConfig("localhost:8080", `http://localhost:8000`)
+			conf := config.URLServiceConfig{BaseURL: `http://localhost:8000`}
 			memRepo := repository.NewMemURLRepo()
 			hashGen := service.NewRandomHashGenerator()
-			urlService := service.NewURLServiceLive(conf, memRepo, hashGen)
+			urlService := service.NewURLServiceLive(&conf, memRepo, hashGen)
 			urlHandler := NewURLHandler(urlService)
 
 			// pre-populate the repository

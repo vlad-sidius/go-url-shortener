@@ -14,13 +14,13 @@ func main() {
 	conf := config.ParseCliArgs()
 	memRepo := repository.NewMemURLRepo()
 	hashGen := service.NewRandomHashGenerator()
-	urlService := service.NewURLServiceLive(conf, memRepo, hashGen)
+	urlService := service.NewURLServiceLive(&conf.URLServiceConf, memRepo, hashGen)
 	urlHandler := handler.NewURLHandler(urlService)
 
 	router := gin.Default()
 	urlHandler.RegisterRoutes(router)
 
-	err := router.Run(conf.Address())
+	err := router.Run(conf.ServerConf.Address)
 	if err != nil {
 		log.Fatalf("Failed to start server %v\n", err)
 	}

@@ -6,17 +6,9 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/vlad-sidius/go-url-shortener/internal/config"
 	"github.com/vlad-sidius/go-url-shortener/internal/repository"
 )
-
-// mock for config
-type mockConfig struct {
-	baseURL string
-}
-
-func (m *mockConfig) BaseURL() string {
-	return m.baseURL
-}
 
 // mock for hash generator
 type generatorResult struct {
@@ -103,7 +95,7 @@ func TestURLServiceLive_CreateShortCode(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			conf := &mockConfig{baseURL: "https://short.io"}
+			conf := &config.URLServiceConfig{BaseURL: "https://short.io"}
 			urlService := NewURLServiceLive(conf, tc.repo, tc.generator)
 
 			shortURL, err := urlService.CreateShortCode(tc.originalURL)
@@ -147,7 +139,7 @@ func TestURLServiceLive_ResolveOriginalURL(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			conf := &mockConfig{baseURL: "https://short.io"}
+			conf := &config.URLServiceConfig{BaseURL: "https://short.io"}
 			urlService := NewURLServiceLive(conf, tc.repo, &mockGenerator{})
 
 			originalURL, ok := urlService.ResolveOriginalURL(tc.hash)

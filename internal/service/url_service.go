@@ -1,20 +1,18 @@
 package service
 
 import (
-	"errors"
 	"fmt"
 	"net/url"
+
+	"github.com/vlad-sidius/go-url-shortener/internal/config"
 )
 
 const retriesLimit = 10
 
 type urlRepo interface {
 	Put(key, value string)
+	TryPut(key, value string) error
 	Get(key string) (string, bool)
-}
-
-type handlerConfig interface {
-	BaseURL() string
 }
 
 type hashGenerator interface {
@@ -22,24 +20,22 @@ type hashGenerator interface {
 }
 
 type URLServiceLive struct {
-	conf      handlerConfig
+	conf      *config.URLServiceConfig
 	repo      urlRepo
 	generator hashGenerator
 }
 
-func NewURLServiceLive(conf handlerConfig, repo urlRepo, generator hashGenerator) *URLServiceLive {
+func NewURLServiceLive(conf *config.URLServiceConfig, repo urlRepo, generator hashGenerator) *URLServiceLive {
 	return &URLServiceLive{conf, repo, generator}
 }
 
 func (s *URLServiceLive) CreateShortCode(originalURL string) (string, error) {
-	hashCode, err := s.generateShortCode(retriesLimit)
+	hashCode, err := s.saveShortCode(originalURL, retriesLimit)
 	if err != nil {
 		return "", err
 	}
 
-	s.repo.Put(hashCode, originalURL)
-
-	base, err := url.Parse(s.conf.BaseURL())
+	base, err := url.Parse(s.conf.BaseURL)
 	if err != nil {
 		return "", fmt.Errorf("invalid base URL: %w", err)
 	}
@@ -57,18 +53,14 @@ func (s *URLServiceLive) ResolveOriginalURL(hash string) (string, bool) {
 }
 
 // generateShortCode generates unique hash
-func (s *URLServiceLive) generateShortCode(retriesLeft int) (string, error) {
-	if retriesLeft == 0 {
-		return "", errors.New("failed to generate unique hash, too many collisions")
-	}
-
+func (s *URLServiceLive) saveShortCode(originalURL string, retriesLeft int) (string, error) {
 	hash, err := s.generator.Generate()
 	if err != nil {
 		return "", err
 	}
 
-	if _, ok := s.repo.Get(hash); ok {
-		return s.generateShortCode(retriesLeft - 1)
+	if err := s.repo.TryPut(hash, originalURL); err != nil {
+		return s.saveShortCode(originalURL, retriesLeft-1)
 	}
 
 	return hash, nil

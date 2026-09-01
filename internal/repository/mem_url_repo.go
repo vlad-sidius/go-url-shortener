@@ -1,9 +1,12 @@
 package repository
 
-import "sync"
+import (
+	"fmt"
+	"sync"
+)
 
 type MemURLRepo struct {
-	m    sync.RWMutex
+	m    sync.Mutex
 	data map[string]string
 }
 
@@ -20,9 +23,22 @@ func (r *MemURLRepo) Put(key, value string) {
 	r.data[key] = value
 }
 
+func (r *MemURLRepo) TryPut(key, value string) error {
+	r.m.Lock()
+	defer r.m.Unlock()
+
+	if _, ok := r.data[key]; ok {
+		return fmt.Errorf("insert collision for key '%s'", key)
+	}
+
+	r.data[key] = value
+
+	return nil
+}
+
 func (r *MemURLRepo) Get(key string) (string, bool) {
-	r.m.RLock()
-	defer r.m.RUnlock()
+	r.m.Lock()
+	defer r.m.Unlock()
 
 	value, ok := r.data[key]
 	return value, ok

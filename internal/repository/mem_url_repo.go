@@ -2,6 +2,7 @@ package repository
 
 import (
 	"errors"
+	"fmt"
 	"sync"
 )
 
@@ -30,7 +31,7 @@ func (r *MemURLRepo) TryPut(key, value string) error {
 	defer r.m.Unlock()
 
 	if _, ok := r.data[key]; ok {
-		return ErrInsertCollision
+		return fmt.Errorf("%w: key %q already exists", ErrInsertCollision, key)
 	}
 
 	r.data[key] = value

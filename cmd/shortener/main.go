@@ -11,7 +11,7 @@ import (
 )
 
 func main() {
-	conf := config.ParseCliArgs()
+	conf := config.InitConfig()
 	memRepo := repository.NewMemURLRepo()
 	hashGen := service.NewRandomSlugGenerator()
 	urlService := service.NewURLServiceLive(&conf.URLServiceConf, memRepo, hashGen)

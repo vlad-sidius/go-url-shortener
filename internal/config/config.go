@@ -1,6 +1,15 @@
 package config
 
-import "flag"
+import (
+	"flag"
+	"os"
+	"strings"
+)
+
+const (
+	addressEnv = "SERVER_ADDRESS"
+	baseURLEnv = "BASE_URL"
+)
 
 type ServerConfig struct {
 	Address string
@@ -15,14 +24,22 @@ type Config struct {
 	URLServiceConf URLServiceConfig
 }
 
-func NewConfig(address, baseURL string) *Config {
-	return &Config{
-		ServerConf:     ServerConfig{address},
-		URLServiceConf: URLServiceConfig{baseURL},
+func InitConfig() *Config {
+	config := readCliArgs()
+	address, baseURL := readEnvVars()
+
+	if len(strings.TrimSpace(address)) > 0 {
+		config.ServerConf.Address = address
 	}
+
+	if len(strings.TrimSpace(baseURL)) > 0 {
+		config.URLServiceConf.BaseURL = baseURL
+	}
+
+	return config
 }
 
-func ParseCliArgs() *Config {
+func readCliArgs() *Config {
 	var serverConf ServerConfig
 	var urlServiceConf URLServiceConfig
 
@@ -32,4 +49,11 @@ func ParseCliArgs() *Config {
 	flag.Parse()
 
 	return &Config{serverConf, urlServiceConf}
+}
+
+func readEnvVars() (string, string) {
+	address := os.Getenv(addressEnv)
+	baseURL := os.Getenv(baseURLEnv)
+
+	return address, baseURL
 }

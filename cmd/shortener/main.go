@@ -26,7 +26,7 @@ func main() {
 	urlHandler := handler.NewURLHandler(zLogger, urlService)
 
 	router := gin.New()
-	router.Use(middleware.LoggerMiddleware(zLogger), gin.Recovery())
+	router.Use(middleware.LoggerMiddleware(zLogger), middleware.GzipMiddleware(zLogger), gin.Recovery())
 	urlHandler.RegisterRoutes(router)
 
 	err = router.Run(conf.ServerConf.Address)

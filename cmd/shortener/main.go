@@ -14,15 +14,16 @@ import (
 
 func main() {
 	conf := config.InitConfig()
-	memRepo := repository.NewMemURLRepo()
-	hashGen := service.NewRandomSlugGenerator()
-	urlService := service.NewURLServiceLive(&conf.URLServiceConf, memRepo, hashGen)
-	urlHandler := handler.NewURLHandler(urlService)
 
 	zLogger, err := logger.NewLogger()
 	if err != nil {
 		log.Fatal("Failed to initialize logger")
 	}
+
+	memRepo := repository.NewMemURLRepo()
+	hashGen := service.NewRandomSlugGenerator()
+	urlService := service.NewURLServiceLive(&conf.URLServiceConf, memRepo, hashGen)
+	urlHandler := handler.NewURLHandler(zLogger, urlService)
 
 	router := gin.New()
 	router.Use(middleware.LoggerMiddleware(zLogger), gin.Recovery())

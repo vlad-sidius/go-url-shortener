@@ -7,7 +7,9 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/vlad-sidius/go-url-shortener/internal/config"
+	"github.com/vlad-sidius/go-url-shortener/internal/model"
 	"github.com/vlad-sidius/go-url-shortener/internal/repository"
+	"go.uber.org/zap"
 )
 
 // mock for hash generator
@@ -39,7 +41,7 @@ func TestURLServiceLive_CreateShortCode(t *testing.T) {
 	}{
 		{
 			name:        "success on first try",
-			repo:        repository.NewMemURLRepo(),
+			repo:        repository.NewMemURLRepo(zap.NewNop()),
 			generator:   &mockGenerator{results: []string{"abc123"}},
 			originalURL: "https://example.com/long-url",
 			expectedURL: "https://short.io/abc123",
@@ -48,8 +50,8 @@ func TestURLServiceLive_CreateShortCode(t *testing.T) {
 		{
 			name: "success after one collision",
 			repo: func() urlRepo {
-				r := repository.NewMemURLRepo()
-				r.Put("abc123", "https://example.com/other-url")
+				r := repository.NewMemURLRepo(zap.NewNop())
+				r.Put(model.NewShortURLModel("abc123", "https://example.com/other-url"))
 				return r
 			}(),
 			generator:   &mockGenerator{results: []string{"abc123", "def456"}},
@@ -60,8 +62,8 @@ func TestURLServiceLive_CreateShortCode(t *testing.T) {
 		{
 			name: "retries exhausted due to continuous collisions",
 			repo: func() urlRepo {
-				r := repository.NewMemURLRepo()
-				r.Put("collision", "https://example.com/other-url")
+				r := repository.NewMemURLRepo(zap.NewNop())
+				r.Put(model.NewShortURLModel("collision", "https://example.com/other-url"))
 				return r
 			}(),
 			generator: func() hashGenerator {
@@ -83,7 +85,7 @@ func TestURLServiceLive_CreateShortCode(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			conf := &config.URLServiceConfig{BaseURL: "https://short.io"}
-			urlService := NewURLServiceLive(conf, tc.repo, tc.generator)
+			urlService := NewURLServiceLive(zap.NewNop(), conf, tc.repo, tc.generator)
 
 			shortURL, err := urlService.CreateShortCode(tc.originalURL)
 
@@ -107,8 +109,8 @@ func TestURLServiceLive_ResolveOriginalURL(t *testing.T) {
 		{
 			name: "found in repo",
 			repo: func() urlRepo {
-				r := repository.NewMemURLRepo()
-				r.Put("abc123", "https://example.com/long-url")
+				r := repository.NewMemURLRepo(zap.NewNop())
+				r.Put(model.NewShortURLModel("abc123", "https://example.com/long-url"))
 				return r
 			}(),
 			hash:        "abc123",
@@ -117,7 +119,7 @@ func TestURLServiceLive_ResolveOriginalURL(t *testing.T) {
 		},
 		{
 			name:        "not found in repo",
-			repo:        repository.NewMemURLRepo(),
+			repo:        repository.NewMemURLRepo(zap.NewNop()),
 			hash:        "xyz789",
 			expectedURL: "",
 			expectedOk:  false,
@@ -127,7 +129,7 @@ func TestURLServiceLive_ResolveOriginalURL(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			conf := &config.URLServiceConfig{BaseURL: "https://short.io"}
-			urlService := NewURLServiceLive(conf, tc.repo, &mockGenerator{})
+			urlService := NewURLServiceLive(zap.NewNop(), conf, tc.repo, &mockGenerator{})
 
 			originalURL, ok := urlService.ResolveOriginalURL(tc.hash)
 

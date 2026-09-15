@@ -26,7 +26,8 @@ func TestInitConfigFromCliArgs(t *testing.T) {
 					Address: "localhost:8080",
 				},
 				URLServiceConf: URLServiceConfig{
-					BaseURL: "http://localhost:8080",
+					BaseURL:     "http://localhost:8080",
+					StoragePath: "fileDb.json",
 				},
 			},
 		},
@@ -38,7 +39,8 @@ func TestInitConfigFromCliArgs(t *testing.T) {
 					Address: "localhost:9000",
 				},
 				URLServiceConf: URLServiceConfig{
-					BaseURL: "https://short.example.com",
+					BaseURL:     "https://short.example.com",
+					StoragePath: "fileDb.json",
 				},
 			},
 		},
@@ -50,7 +52,8 @@ func TestInitConfigFromCliArgs(t *testing.T) {
 					Address: "localhost:3000",
 				},
 				URLServiceConf: URLServiceConfig{
-					BaseURL: "http://localhost:8080",
+					BaseURL:     "http://localhost:8080",
+					StoragePath: "fileDb.json",
 				},
 			},
 		},
@@ -62,7 +65,21 @@ func TestInitConfigFromCliArgs(t *testing.T) {
 					Address: "localhost:8080",
 				},
 				URLServiceConf: URLServiceConfig{
-					BaseURL: "http://mydomain.com",
+					BaseURL:     "http://mydomain.com",
+					StoragePath: "fileDb.json",
+				},
+			},
+		},
+		{
+			name: "only custom storage path",
+			args: []string{"cmd", "-f", "storage.data"},
+			expected: Config{
+				ServerConf: ServerConfig{
+					Address: "localhost:8080",
+				},
+				URLServiceConf: URLServiceConfig{
+					BaseURL:     "http://localhost:8080",
+					StoragePath: "storage.data",
 				},
 			},
 		},
@@ -99,7 +116,8 @@ func TestInitConfigFromEnvVars(t *testing.T) {
 					Address: "localhost:8080",
 				},
 				URLServiceConf: URLServiceConfig{
-					BaseURL: "http://localhost:8080",
+					BaseURL:     "http://localhost:8080",
+					StoragePath: "fileDb.json",
 				},
 			},
 		},
@@ -112,7 +130,8 @@ func TestInitConfigFromEnvVars(t *testing.T) {
 					Address: "localhost:9000",
 				},
 				URLServiceConf: URLServiceConfig{
-					BaseURL: "https://short.example.com",
+					BaseURL:     "https://short.example.com",
+					StoragePath: "fileDb.json",
 				},
 			},
 		},
@@ -125,7 +144,8 @@ func TestInitConfigFromEnvVars(t *testing.T) {
 					Address: "localhost:3000",
 				},
 				URLServiceConf: URLServiceConfig{
-					BaseURL: "http://localhost:8080",
+					BaseURL:     "http://localhost:8080",
+					StoragePath: "fileDb.json",
 				},
 			},
 		},
@@ -138,7 +158,22 @@ func TestInitConfigFromEnvVars(t *testing.T) {
 					Address: "localhost:8080",
 				},
 				URLServiceConf: URLServiceConfig{
-					BaseURL: "http://mydomain.com",
+					BaseURL:     "http://mydomain.com",
+					StoragePath: "fileDb.json",
+				},
+			},
+		},
+		{
+			name: "only custom storage path",
+			args: []string{"cmd"},
+			vars: map[string]string{storagePathEnv: "storage.data"},
+			expected: Config{
+				ServerConf: ServerConfig{
+					Address: "localhost:8080",
+				},
+				URLServiceConf: URLServiceConfig{
+					BaseURL:     "http://localhost:8080",
+					StoragePath: "storage.data",
 				},
 			},
 		},

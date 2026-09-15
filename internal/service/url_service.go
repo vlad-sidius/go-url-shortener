@@ -5,14 +5,18 @@ import (
 	"net/url"
 
 	"github.com/vlad-sidius/go-url-shortener/internal/config"
+	"github.com/vlad-sidius/go-url-shortener/internal/model"
+	"go.uber.org/zap"
 )
 
 const retriesLimit = 10
 
 type urlRepo interface {
-	Put(key, value string)
-	TryPut(key, value string) error
-	Get(key string) (string, bool)
+	Put(value *model.ShortURLModel)
+	TryPut(value *model.ShortURLModel) error
+	Get(key string) (*model.ShortURLModel, bool)
+	Save(fileName string) error
+	Load(fileName string) error
 }
 
 type hashGenerator interface {
@@ -20,19 +24,25 @@ type hashGenerator interface {
 }
 
 type URLServiceLive struct {
+	log       *zap.Logger
 	conf      *config.URLServiceConfig
 	repo      urlRepo
 	generator hashGenerator
 }
 
-func NewURLServiceLive(conf *config.URLServiceConfig, repo urlRepo, generator hashGenerator) *URLServiceLive {
-	return &URLServiceLive{conf, repo, generator}
+func NewURLServiceLive(log *zap.Logger, conf *config.URLServiceConfig, repo urlRepo, generator hashGenerator) *URLServiceLive {
+	return &URLServiceLive{log, conf, repo, generator}
 }
 
 func (s *URLServiceLive) CreateShortCode(originalURL string) (string, error) {
 	hashCode, err := s.saveShortCode(originalURL, retriesLimit)
 	if err != nil {
 		return "", err
+	}
+
+	err = s.repo.Save(s.conf.StoragePath)
+	if err != nil {
+		s.log.Error("Failed to save data in file storage", zap.Error(err))
 	}
 
 	base, err := url.Parse(s.conf.BaseURL)
@@ -44,9 +54,9 @@ func (s *URLServiceLive) CreateShortCode(originalURL string) (string, error) {
 }
 
 func (s *URLServiceLive) ResolveOriginalURL(hash string) (string, bool) {
-	originalURL, ok := s.repo.Get(hash)
+	record, ok := s.repo.Get(hash)
 	if ok {
-		return originalURL, true
+		return record.OriginalURL, true
 	}
 
 	return "", false
@@ -61,7 +71,7 @@ func (s *URLServiceLive) saveShortCode(originalURL string, retriesLeft int) (str
 
 	hash := s.generator.Generate()
 
-	if err := s.repo.TryPut(hash, originalURL); err != nil {
+	if err := s.repo.TryPut(model.NewShortURLModel(hash, originalURL)); err != nil {
 		return s.saveShortCode(originalURL, retriesLeft-1)
 	}
 

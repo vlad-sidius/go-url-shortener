@@ -12,11 +12,8 @@ import (
 const retriesLimit = 10
 
 type urlRepo interface {
-	Put(value *model.ShortURLModel)
 	TryPut(value *model.ShortURLModel) error
 	Get(key string) (*model.ShortURLModel, bool)
-	Save(fileName string) error
-	Load(fileName string) error
 }
 
 type hashGenerator interface {
@@ -38,11 +35,6 @@ func (s *URLServiceLive) CreateShortCode(originalURL string) (string, error) {
 	hashCode, err := s.saveShortCode(originalURL, retriesLimit)
 	if err != nil {
 		return "", err
-	}
-
-	err = s.repo.Save(s.conf.StoragePath)
-	if err != nil {
-		s.log.Error("Failed to save data in file storage", zap.Error(err))
 	}
 
 	base, err := url.Parse(s.conf.BaseURL)

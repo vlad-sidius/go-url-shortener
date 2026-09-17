@@ -3,7 +3,6 @@ package config
 import (
 	"flag"
 	"os"
-	"strings"
 )
 
 const (
@@ -28,19 +27,7 @@ type Config struct {
 
 func InitConfig() *Config {
 	config := readCliArgs()
-	address, baseURL, storagePath := readEnvVars()
-
-	if len(strings.TrimSpace(address)) > 0 {
-		config.ServerConf.Address = address
-	}
-
-	if len(strings.TrimSpace(storagePath)) > 0 {
-		config.URLServiceConf.StoragePath = storagePath
-	}
-
-	if len(strings.TrimSpace(baseURL)) > 0 {
-		config.URLServiceConf.BaseURL = baseURL
-	}
+	updateConfigWithEnvOverrides(config)
 
 	return config
 }
@@ -58,10 +45,19 @@ func readCliArgs() *Config {
 	return &Config{serverConf, urlServiceConf}
 }
 
-func readEnvVars() (string, string, string) {
-	address := os.Getenv(addressEnv)
-	baseURL := os.Getenv(baseURLEnv)
-	storagePath := os.Getenv(storagePathEnv)
+func updateConfigWithEnvOverrides(conf *Config) {
+	address, ok := os.LookupEnv(addressEnv)
+	if ok {
+		conf.ServerConf.Address = address
+	}
 
-	return address, baseURL, storagePath
+	baseURL, ok := os.LookupEnv(baseURLEnv)
+	if ok {
+		conf.URLServiceConf.BaseURL = baseURL
+	}
+
+	storagePath, ok := os.LookupEnv(storagePathEnv)
+	if ok {
+		conf.URLServiceConf.StoragePath = storagePath
+	}
 }

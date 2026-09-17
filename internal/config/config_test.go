@@ -177,6 +177,20 @@ func TestInitConfigFromEnvVars(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "overridden variables from ENV",
+			args: []string{"cmd", "-a", "localhost:9000", "-b", "https://short.example.com", "-f", "storage.data"},
+			vars: map[string]string{addressEnv: "localhost:3000", baseURLEnv: "http://mydomain.com", storagePathEnv: "store.db"},
+			expected: Config{
+				ServerConf: ServerConfig{
+					Address: "localhost:3000",
+				},
+				URLServiceConf: URLServiceConfig{
+					BaseURL:     "http://mydomain.com",
+					StoragePath: "store.db",
+				},
+			},
+		},
 	}
 
 	for _, tt := range tests {
@@ -189,14 +203,8 @@ func TestInitConfigFromEnvVars(t *testing.T) {
 			os.Args = tt.args
 
 			for k, v := range tt.vars {
-				_ = os.Setenv(k, v)
+				t.Setenv(k, v)
 			}
-
-			defer func() {
-				for k := range tt.vars {
-					_ = os.Unsetenv(k)
-				}
-			}()
 
 			config := InitConfig()
 			assert.Equal(t, tt.expected, *config)

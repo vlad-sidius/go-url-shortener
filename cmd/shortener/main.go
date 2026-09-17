@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"os"
 
 	"github.com/gin-gonic/gin"
 	"github.com/vlad-sidius/go-url-shortener/internal/config"
@@ -10,6 +11,7 @@ import (
 	"github.com/vlad-sidius/go-url-shortener/internal/logger"
 	"github.com/vlad-sidius/go-url-shortener/internal/repository"
 	"github.com/vlad-sidius/go-url-shortener/internal/service"
+	"go.uber.org/zap"
 )
 
 func main() {
@@ -20,13 +22,9 @@ func main() {
 		log.Fatal("Failed to initialize logger")
 	}
 
-	memRepo := repository.NewMemURLRepo(zLogger)
-	if err := memRepo.Load(conf.URLServiceConf.StoragePath); err != nil {
-		zLogger.Error("Failed to load data from file. Continue with empty storage.")
-	}
-
+	fileRepo := repository.NewFileURLRepo(zLogger, conf.URLServiceConf.StoragePath)
 	hashGen := service.NewRandomSlugGenerator()
-	urlService := service.NewURLServiceLive(zLogger, &conf.URLServiceConf, memRepo, hashGen)
+	urlService := service.NewURLServiceLive(zLogger, &conf.URLServiceConf, fileRepo, hashGen)
 	urlHandler := handler.NewURLHandler(zLogger, urlService)
 
 	router := gin.New()
@@ -35,6 +33,7 @@ func main() {
 
 	err = router.Run(conf.ServerConf.Address)
 	if err != nil {
-		log.Fatalf("Failed to start server %v\n", err)
+		zLogger.Error("Failed to start server", zap.Error(err))
+		os.Exit(1)
 	}
 }

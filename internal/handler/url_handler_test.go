@@ -40,9 +40,9 @@ func TestShortenURLHandler(t *testing.T) {
 		t.Run(tc.method, func(t *testing.T) {
 			// init dependencies
 			conf := config.URLServiceConfig{BaseURL: `http://localhost:8000`}
-			memRepo := repository.NewMemURLRepo()
+			memRepo := repository.NewMemURLRepo(zap.NewNop())
 			hashGen := service.NewRandomSlugGenerator()
-			urlService := service.NewURLServiceLive(&conf, memRepo, hashGen)
+			urlService := service.NewURLServiceLive(zap.NewNop(), &conf, memRepo, hashGen)
 			urlHandler := NewURLHandler(zap.NewNop(), urlService)
 
 			// create router
@@ -103,9 +103,9 @@ func TestApiShortenURLHandler(t *testing.T) {
 		t.Run(tc.method, func(t *testing.T) {
 			// init dependencies
 			conf := config.URLServiceConfig{BaseURL: `http://localhost:8000`}
-			memRepo := repository.NewMemURLRepo()
+			memRepo := repository.NewMemURLRepo(zap.NewNop())
 			hashGen := service.NewRandomSlugGenerator()
-			urlService := service.NewURLServiceLive(&conf, memRepo, hashGen)
+			urlService := service.NewURLServiceLive(zap.NewNop(), &conf, memRepo, hashGen)
 			urlHandler := NewURLHandler(zap.NewNop(), urlService)
 
 			// create router
@@ -165,15 +165,15 @@ func TestGetURLHandler(t *testing.T) {
 		t.Run(tc.method, func(t *testing.T) {
 			// init dependencies
 			conf := config.URLServiceConfig{BaseURL: `http://localhost:8000`}
-			memRepo := repository.NewMemURLRepo()
+			memRepo := repository.NewMemURLRepo(zap.NewNop())
 			hashGen := service.NewRandomSlugGenerator()
-			urlService := service.NewURLServiceLive(&conf, memRepo, hashGen)
+			urlService := service.NewURLServiceLive(zap.NewNop(), &conf, memRepo, hashGen)
 			urlHandler := NewURLHandler(zap.NewNop(), urlService)
 
 			// pre-populate the repository
 			urlHash := "test123"
 			originalURL := "https://practicum.yandex.ru"
-			memRepo.Put(urlHash, originalURL)
+			memRepo.Put(model.NewShortURLModel(urlHash, originalURL))
 
 			// create router
 			router := gin.New()

@@ -63,7 +63,7 @@ func (w *gzipResponseWriter) shouldCompress() bool {
 
 func GzipMiddleware(log *zap.Logger) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-		log.Info(HeaderContentEncoding + ctx.GetHeader(HeaderContentEncoding))
+		log.Info("Processing", zap.String(HeaderContentEncoding, ctx.GetHeader(HeaderContentEncoding)))
 
 		// try uncompress gzipped request
 		if strings.Contains(ctx.GetHeader(HeaderContentEncoding), EncodingGzip) {
@@ -76,7 +76,12 @@ func GzipMiddleware(log *zap.Logger) gin.HandlerFunc {
 				return
 			}
 
-			defer gz.Close()
+			defer func(gz *gzip.Reader) {
+				err := gz.Close()
+				if err != nil {
+					log.Error("Error closing GZIP reader", zap.Error(err))
+				}
+			}(gz)
 			ctx.Request.Body = gz
 		}
 
@@ -94,7 +99,10 @@ func GzipMiddleware(log *zap.Logger) gin.HandlerFunc {
 		ctx.Next()
 
 		if gw, ok := ctx.Writer.(*gzipResponseWriter); ok && gw.writer != nil {
-			_ = gw.writer.Close()
+			err := gw.writer.Close()
+			if err != nil {
+				log.Error("Error closing GZIP writer", zap.Error(err))
+			}
 		}
 	}
 }

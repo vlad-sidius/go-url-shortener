@@ -1,21 +1,17 @@
 package model
 
-type ShortenRequest struct {
-	URL string `json:"url"`
+import "github.com/google/uuid"
+
+type ShortURLModel struct {
+	UUID        string `json:"uuid"`
+	ShortURL    string `json:"short_url"`
+	OriginalURL string `json:"original_url"`
 }
 
-type ShortenResponse struct {
-	Result string `json:"result"`
-}
-
-type ErrorResponse struct {
-	Message string `json:"message"`
-}
-
-func NewShortenResponse(result string) *ShortenResponse {
-	return &ShortenResponse{Result: result}
-}
-
-func NewErrorResponse(message string) *ErrorResponse {
-	return &ErrorResponse{Message: message}
+func NewShortURLModel(shortURL, originalURL string) *ShortURLModel {
+	return &ShortURLModel{
+		UUID:        uuid.New().String(),
+		ShortURL:    shortURL,
+		OriginalURL: originalURL,
+	}
 }

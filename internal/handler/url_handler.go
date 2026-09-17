@@ -11,6 +11,11 @@ import (
 	"go.uber.org/zap"
 )
 
+const (
+	idParam     = "id"
+	maxBodySize = 10 * 1024 // 10 KB
+)
+
 type urlService interface {
 	CreateShortCode(originalURL string) (string, error)
 	ResolveOriginalURL(hash string) (string, bool)
@@ -36,7 +41,7 @@ func (h *URLHandler) RegisterRoutes(router gin.IRoutes) {
 func (h *URLHandler) shortenURLHandler(ctx *gin.Context) {
 	body, err := ctx.GetRawData()
 	if err != nil {
-		h.log.Error("Failed to read body")
+		h.log.Error("Failed to read body", zap.Error(err))
 		ctx.Status(http.StatusInternalServerError)
 		return
 	}
@@ -61,13 +66,21 @@ func (h *URLHandler) shortenURLHandler(ctx *gin.Context) {
 
 // generates hash and store url in local storage, use JSON serialization
 func (h *URLHandler) apiShortenURLHandler(ctx *gin.Context) {
+	ctx.Request.Body = http.MaxBytesReader(ctx.Writer, ctx.Request.Body, maxBodySize)
+
 	// read body
 	var request model.ShortenRequest
 
 	body, err := ctx.GetRawData()
 	if err != nil {
-		h.log.Error("Failed to read body")
-		ctx.JSON(http.StatusInternalServerError, model.NewErrorResponse("Failed to read body"))
+		h.log.Error("Failed to read body", zap.Error(err))
+
+		if _, ok := err.(*http.MaxBytesError); ok {
+			ctx.JSON(http.StatusRequestEntityTooLarge, model.NewErrorResponse("Body content is too large"))
+		} else {
+			ctx.JSON(http.StatusInternalServerError, model.NewErrorResponse("Failed to read body"))
+		}
+
 		return
 	}
 
@@ -97,7 +110,7 @@ func (h *URLHandler) apiShortenURLHandler(ctx *gin.Context) {
 
 // resolves an url by hash
 func (h *URLHandler) getURLHandler(ctx *gin.Context) {
-	hash := ctx.Param("id")
+	hash := ctx.Param(idParam)
 
 	originalURL, ok := h.service.ResolveOriginalURL(hash)
 	if !ok {
